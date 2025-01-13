@@ -31,6 +31,8 @@ background = pygame.image.load("background.png")
 background = pygame.transform.scale(background, (WIDTH, HEIGHT))
 
 # Класс для кнопок
+
+
 class Button:
     def __init__(self, text, x, y, width, height, color, hover_color, action=None):
         self.text = text
@@ -42,7 +44,8 @@ class Button:
     def draw(self, screen):
         mouse_pos = pygame.mouse.get_pos()
         is_hovered = self.rect.collidepoint(mouse_pos)
-        pygame.draw.rect(screen, self.hover_color if is_hovered else self.color, self.rect)
+        pygame.draw.rect(
+            screen, self.hover_color if is_hovered else self.color, self.rect)
         pygame.draw.rect(screen, BLACK, self.rect, 2)  # Граница кнопки
         text_surface = font.render(self.text, True, BLACK)
         text_rect = text_surface.get_rect(center=self.rect.center)
@@ -50,22 +53,26 @@ class Button:
 
     def check_click(self):
         mouse_pos = pygame.mouse.get_pos()
-        if self.rect.collidepoint(mouse_pos) and pygame.mouse.get_pressed()[0]:  # ЛКМ
+        # ЛКМ
+        if self.rect.collidepoint(mouse_pos) and pygame.mouse.get_pressed()[0]:
             if self.action:
                 self.action()
 
-# Действия кнопок
+
 def start_game():
-    game_loop() 
+    game_loop()
+
 
 def quit_game():
     pygame.quit()
     sys.exit()
 
-# Главное меню
+
 def main_menu():
-    start_button = Button("Play", WIDTH // 2 - 100, HEIGHT // 2 - 60, 200, 50, GRAY, DARK_GRAY, start_game)
-    quit_button = Button("Quit", WIDTH // 2 - 100, HEIGHT // 2 + 10, 200, 50, GRAY, DARK_GRAY, quit_game)
+    start_button = Button("Play", WIDTH // 2 - 100, HEIGHT //
+                          2 - 60, 200, 50, GRAY, DARK_GRAY, start_game)
+    quit_button = Button("Quit", WIDTH // 2 - 100, HEIGHT //
+                         2 + 10, 200, 50, GRAY, DARK_GRAY, quit_game)
     buttons = [start_button, quit_button]
 
     while True:
@@ -84,9 +91,13 @@ def main_menu():
         clock.tick(FPS)
 
 # Экран паузы
+
+
 def pause_menu():
-    resume_button = Button("Resume", WIDTH // 2 - 100, HEIGHT // 2 - 60, 200, 50, GRAY, DARK_GRAY)
-    quit_button = Button("Quit", WIDTH // 2 - 100, HEIGHT // 2 + 10, 200, 50, GRAY, DARK_GRAY, quit_game)
+    resume_button = Button("Resume", WIDTH // 2 - 100,
+                           HEIGHT // 2 - 60, 200, 50, GRAY, DARK_GRAY)
+    quit_button = Button("Quit", WIDTH // 2 - 100, HEIGHT //
+                         2 + 10, 200, 50, GRAY, DARK_GRAY, quit_game)
     buttons = [resume_button, quit_button]
 
     paused = True
@@ -106,5 +117,6 @@ def pause_menu():
                     paused = False
 
         clock.tick(FPS)
+
 
 main_menu()

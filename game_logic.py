@@ -27,14 +27,47 @@ jump_platform_img.fill((0, 128, 255))
 spike_img = pygame.Surface((TILE_SIZE, TILE_SIZE))
 spike_img.fill(RED)
 
-# Функция для загрузки карты из файла
+player_image = pygame.image.load("cube.png")
+player_image = pygame.transform.scale(player_image, (40, 40))
+
+
+background = pygame.image.load("background.png")
+background_width = background.get_width()  # Ширина фона
+
+# Состояние фона
+background_x = 0  # Начальная позиция фона
+background_speed = 2
+
+background_x1 = 0  # Начальная позиция первого фона
+background_x2 = background_width  # Начальная позиция второго фона
+background_speed = 2
+
+
+def reset_background():
+    global background_x1, background_x2
+    background_x1 = 0
+    background_x2 = background_width
+
+
+def draw_background():
+    global background_x1, background_x2
+
+    screen.blit(background, (background_x1, 0))  # Первый фон
+    screen.blit(background, (background_x2, 0))  # Второй фон
+
+    background_x1 -= background_speed
+    background_x2 -= background_speed
+
+    if background_x1 <= -background_width:
+        background_x1 = background_x2 + background_width
+
+    if background_x2 <= -background_width:
+        background_x2 = background_x1 + background_width
 
 
 def load_map(file_path):
     with open(file_path, 'r') as file:
         return [list(line.strip()) for line in file]
-
-# Функция для отрисовки карты
 
 
 def draw_map(game_map, offset_x):
@@ -49,6 +82,46 @@ def draw_map(game_map, offset_x):
                 screen.blit(jump_platform_img, (x, y))
             elif tile == '3':  # Шипы
                 screen.blit(spike_img, (x, y))
+
+
+def reset_game():
+    # Сброс состояния игрока и игры
+    global player_x, player_y, player_vel_y, on_ground
+    player_x = 100  # Начальная позиция по X
+    player_y = HEIGHT - player_height - 100  # Начальная позиция по Y
+    player_vel_y = 0  # Начальная вертикальная скорость
+    on_ground = True  # Начальное состояние (игрок на земле)
+    reset_background()
+
+
+def show_game_over():
+    font = pygame.font.SysFont(None, 48)
+    text = font.render('Game Over', True, RED)
+    retry_text = font.render('Press R to Retry', True, WHITE)
+    quit_text = font.render('Press Q to Quit', True, WHITE)
+
+    screen.fill(BLACK)
+    screen.blit(text, (WIDTH // 2 - text.get_width() // 2, HEIGHT // 2 - 100))
+    screen.blit(retry_text, (WIDTH // 2 -
+                retry_text.get_width() // 2, HEIGHT // 2))
+    screen.blit(quit_text, (WIDTH // 2 -
+                quit_text.get_width() // 2, HEIGHT // 2 + 50))
+
+    pygame.display.flip()
+
+    waiting = True
+    while waiting:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    reset_game()
+                    return "retry"
+                if event.key == pygame.K_q:
+                    pygame.quit()
+                    sys.exit()
 
 
 # Игрок
@@ -86,26 +159,48 @@ def update_player(game_map):
             tile_x = col_idx * TILE_SIZE
             tile_y = row_idx * TILE_SIZE
 
+            if tile == '1':
+                if tile_x <= player_x + player_width and player_x <= tile_x + TILE_SIZE:
+                    if player_y + player_height <= tile_y + TILE_SIZE and player_y + player_height + player_vel_y >= tile_y:
+                        player_y = tile_y - player_height  # Ставим игрока на платформу
+                        player_vel_y = 0  # Сбрасываем вертикальную скорость
+                        on_ground_temp = True  # Игрок стоит на платформе
+                        break
+
             if tile == '1':  # Платформа
-                # Проверяем, пересекает ли игрок платформу по оси X и его нижняя часть находится над платформой
+                # Проверка снизу (если игрок упал на платформу)
                 if tile_x <= player_x + player_width and player_x <= tile_x + TILE_SIZE:
                     if player_y + player_height <= tile_y + TILE_SIZE and player_y + player_height > tile_y:
                         player_y = tile_y - player_height  # Игрок ставится на платформу
                         player_vel_y = 0  # Сбрасываем вертикальную скорость
-                        on_ground_temp = True  # Персонаж на платформе
+                        on_ground = True  # Персонаж на платформе
                         break  # Выходим из цикла, так как мы нашли платформу
 
-    # Обработка движения игрока вправо
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_RIGHT]:
-        player_x += player_velocity  # скорость вправо
+                # Проверка сверху (если игрок столкнулся сверху)
+                if tile_x <= player_x + player_width and player_x <= tile_x + TILE_SIZE:
+                    if player_y >= tile_y + TILE_SIZE and player_y < tile_y + TILE_SIZE + player_vel_y:
+                        player_vel_y = 0
+
+            if tile == '3':  # Шипы
+                if player_x + player_width > tile_x and player_x < tile_x + TILE_SIZE:
+                    if player_y + player_height > tile_y and player_y < tile_y + TILE_SIZE:
+                        show_game_over()
 
     if not on_ground_temp:
-        player_vel_y += 1  # Гравитация
+        player_vel_y += 1
+    else:
+        player_vel_y = 0
 
-    player_y += player_vel_y  # Обновляем позицию игрока по Y
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_RIGHT]:
+        player_x += player_velocity
 
-    # Если игрок достиг земли, ставим его на землю
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT]:
+        player_x -= player_velocity
+
+    player_y += player_vel_y
+
     if player_y >= HEIGHT - player_height:
         player_y = HEIGHT - player_height
         player_vel_y = 0
@@ -118,7 +213,8 @@ def update_player(game_map):
     # Обновляем состояние на земле
     on_ground = on_ground_temp
 
-    print(f"Player Position: ({player_x}, {player_y}), Velocity: {player_vel_y}, On Ground: {on_ground}")
+    print(f"Player Position: ({player_x}, {player_y}), Velocity: {
+          player_vel_y}, On Ground: {on_ground}")
 
 
 def game_loop():
@@ -126,9 +222,13 @@ def game_loop():
     game_map = load_map("map.txt")
     offset_x = 0  # Начальная позиция карты
 
+    reset_background()
+
     running = True
     while running:
-        screen.fill(WHITE)  # Заполняем экран белым
+        screen.fill(WHITE)
+
+        draw_background()
 
         # Обновление игрока, передаем карту для проверки столкновений с платформами
         update_player(game_map)
@@ -140,8 +240,7 @@ def game_loop():
         draw_map(game_map, offset_x)
 
         # Рисуем игрока
-        pygame.draw.rect(screen, BLUE, (player_x - offset_x,
-                         player_y, player_width, player_height))
+        screen.blit(player_image, (player_x - offset_x, player_y))
 
         pygame.display.flip()
 
