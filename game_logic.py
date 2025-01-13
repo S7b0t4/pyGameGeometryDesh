@@ -74,6 +74,13 @@ def jump():
 def update_player(game_map):
     global player_x, player_y, player_vel_y, on_ground
 
+    # Устанавливаем on_ground в False, если игрок в начале игры не на платформе
+    if player_y >= HEIGHT - player_height and not on_ground:
+        on_ground = True
+
+    on_ground_temp = False  # Временная переменная для проверки, находим ли мы платформу
+
+    # Проверяем столкновение с платформами
     for row_idx, row in enumerate(game_map):
         for col_idx, tile in enumerate(row):
             tile_x = col_idx * TILE_SIZE
@@ -85,64 +92,33 @@ def update_player(game_map):
                     if player_y + player_height <= tile_y + TILE_SIZE and player_y + player_height > tile_y:
                         player_y = tile_y - player_height  # Игрок ставится на платформу
                         player_vel_y = 0  # Сбрасываем вертикальную скорость
-                        on_ground = True  # Персонаж на платформе
+                        on_ground_temp = True  # Персонаж на платформе
                         break  # Выходим из цикла, так как мы нашли платформу
 
-    # Движение игрока вправо (в основном цикле, при нажатии стрелки вправо или автоматически)
+    # Обработка движения игрока вправо
     keys = pygame.key.get_pressed()
     if keys[pygame.K_RIGHT]:
         player_x += player_velocity  # скорость вправо
 
-    if not on_ground:
+    if not on_ground_temp:
         player_vel_y += 1  # Гравитация
 
     player_y += player_vel_y  # Обновляем позицию игрока по Y
 
-    print(player_y >= HEIGHT - player_height)
-
+    # Если игрок достиг земли, ставим его на землю
     if player_y >= HEIGHT - player_height:
         player_y = HEIGHT - player_height
         player_vel_y = 0
-        on_ground = True
+        on_ground_temp = True
 
-    player_y += player_vel_y
-
-    print(f"Player Position: ({player_x}, {player_y}), Velocity: {
-          player_vel_y}, On Ground: {on_ground}")
-
-    if keys[pygame.K_SPACE]:
-        print("jump", on_ground)
+    # Обработка прыжка
+    if keys[pygame.K_SPACE] and on_ground_temp:
         jump()
 
-    if player_y >= HEIGHT - player_height:
-        player_y = HEIGHT - player_height
-        on_ground = True
-        print("Player landed on the ground.")
+    # Обновляем состояние на земле
+    on_ground = on_ground_temp
 
-    # Проверка на платформы
-    on_ground_temp = False  # временная переменная для проверки, находим ли мы платформу
-    for row_idx, row in enumerate(game_map):
-        for col_idx, tile in enumerate(row):
-            tile_x = col_idx * TILE_SIZE
-            tile_y = row_idx * TILE_SIZE
-
-            if tile == '1' and tile_x <= player_x < tile_x + TILE_SIZE and tile_y <= player_y < tile_y + TILE_SIZE:
-                # Если игрок на платформе
-                if player_y + player_height <= tile_y + TILE_SIZE:
-                    player_y = tile_y - player_height
-                    on_ground_temp = True  # игрок на платформе
-                    player_vel_y = 0  # сбросить вертикальную скорость
-                    print(
-                        f"Player landed on a platform at ({tile_x}, {tile_y})")
-                    break
-
-    if not on_ground_temp and player_y < HEIGHT - player_height:
-        # Если не найдено платформы и игрок не на земле
-        """ on_ground = False """
-        print("Player is not on any platform.")
-    else:
-        # Если на платформе или на земле
-        on_ground = on_ground_temp
+    print(f"Player Position: ({player_x}, {player_y}), Velocity: {player_vel_y}, On Ground: {on_ground}")
 
 
 def game_loop():
