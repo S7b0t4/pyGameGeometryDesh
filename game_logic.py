@@ -1,5 +1,6 @@
 import pygame
 import sys
+import os
 
 # Инициализация Pygame
 pygame.init()
@@ -16,13 +17,14 @@ BLACK = (0, 0, 0)
 GRAY = (200, 200, 200)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
+GREEN = (0, 128, 0)
 
 # Загрузка текстур
 platform_img = pygame.Surface((TILE_SIZE, TILE_SIZE))
 platform_img.fill(GRAY)
 
-jump_platform_img = pygame.Surface((TILE_SIZE, TILE_SIZE))
-jump_platform_img.fill((0, 128, 255))
+finish = pygame.Surface((TILE_SIZE, TILE_SIZE))
+finish.fill((0, 128, 255))
 
 spike_img = pygame.Surface((TILE_SIZE, TILE_SIZE))
 spike_img.fill(RED)
@@ -41,6 +43,8 @@ background_speed = 2
 background_x1 = 0  # Начальная позиция первого фона
 background_x2 = background_width  # Начальная позиция второго фона
 background_speed = 2
+
+font = pygame.font.SysFont(None, 48) 
 
 
 def reset_background():
@@ -78,25 +82,32 @@ def draw_map(game_map, offset_x):
 
             if tile == '1':  # Базовая платформа
                 screen.blit(platform_img, (x, y))
-            elif tile == '2':  # Прыжковая платформа
-                screen.blit(jump_platform_img, (x, y))
+            elif tile == '2':  # Финиш
+                screen.blit(finish, (x, y))
             elif tile == '3':  # Шипы
                 screen.blit(spike_img, (x, y))
 
 
 def reset_game():
-    # Сброс состояния игрока и игры
     global player_x, player_y, player_vel_y, on_ground
-    player_x = 100  # Начальная позиция по X
+    player_x = 100
     player_y = HEIGHT - player_height - 100  # Начальная позиция по Y
     player_vel_y = 0  # Начальная вертикальная скорость
     on_ground = True  # Начальное состояние (игрок на земле)
     reset_background()
 
 
-def show_game_over():
+def show_game_over(isWin):
     font = pygame.font.SysFont(None, 48)
-    text = font.render('Game Over', True, RED)
+    text = ""
+    color = "RED"
+    if (isWin):
+        text = "You win"
+        color = "GREEN"
+    else:
+        text = "You lose"
+        color = "RED"
+    text = font.render(text, True, color)
     retry_text = font.render('Press R to Retry', True, WHITE)
     quit_text = font.render('Press Q to Quit', True, WHITE)
 
@@ -133,6 +144,49 @@ player_velocity = 5
 player_jump = 15
 player_vel_y = 0
 on_ground = True
+game_map = "maps/map2.txt"
+
+
+def draw_text(text, x, y, color=BLACK):
+    rendered_text = font.render(text, True, color)
+    screen.blit(rendered_text, (x, y))
+
+
+def map_selection_menu():
+    global game_map
+    maps_dir = "./maps"  # Папка с картами
+    maps = [f for f in os.listdir(maps_dir) if f.endswith(".txt")]
+
+    selected_index = 0  # Индекс выбранной карты
+
+    running = True
+    while running:
+        screen.fill(WHITE)
+
+        draw_text(
+            "стрелки для навигации, Enter для выбора", 20, 20, BLUE)
+
+        # Отображение списка карт
+        for i, map_name in enumerate(maps):
+            color = BLUE if i == selected_index else BLACK
+            draw_text(map_name, 50, 80 + i * 40, color)
+
+        pygame.display.flip()
+
+        # Обработка событий
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_DOWN:
+                    selected_index = (selected_index + 1) % len(maps)
+                if event.key == pygame.K_UP:
+                    selected_index = (selected_index - 1) % len(maps)
+                if event.key == pygame.K_RETURN:
+                    game_map =  load_map(os.path.join(maps_dir, maps[selected_index]))
+                    game_loop()
+                    return
 
 
 def jump():
@@ -184,18 +238,24 @@ def update_player(game_map):
             if tile == '3':  # Шипы
                 if player_x + player_width > tile_x and player_x < tile_x + TILE_SIZE:
                     if player_y + player_height > tile_y and player_y < tile_y + TILE_SIZE:
-                        show_game_over()
+                        show_game_over(False)
+
+            if tile == '2':  # Финиш
+                if player_x + player_width > tile_x and player_x < tile_x + TILE_SIZE:
+                    if player_y + player_height > tile_y and player_y < tile_y + TILE_SIZE:
+                        show_game_over(True)
 
     if not on_ground_temp:
         player_vel_y += 1
     else:
         player_vel_y = 0
 
+    player_x += player_velocity
+
     keys = pygame.key.get_pressed()
     if keys[pygame.K_RIGHT]:
         player_x += player_velocity
 
-    keys = pygame.key.get_pressed()
     if keys[pygame.K_LEFT]:
         player_x -= player_velocity
 
@@ -218,8 +278,7 @@ def update_player(game_map):
 
 
 def game_loop():
-    global player_x, player_y, on_ground
-    game_map = load_map("map.txt")
+    global player_x, player_y, on_ground, game_map
     offset_x = 0  # Начальная позиция карты
 
     reset_background()

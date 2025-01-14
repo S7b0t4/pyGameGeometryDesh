@@ -1,6 +1,6 @@
 import pygame
 import sys
-from game_logic import game_loop
+from game_logic import map_selection_menu
 
 
 # Инициализация Pygame
@@ -60,7 +60,7 @@ class Button:
 
 
 def start_game():
-    game_loop()
+    map_selection_menu()
 
 
 def quit_game():
